@@ -1,8 +1,0 @@
-#region  = "eu-zurich-1"
-#comp1_id = oci_identity_compartment.TerraForEach_Compartments["comp1"].id
-#comp2_id = oci_identity_compartment.TerraForEach_Compartments["comp2"].id
-
-vcn1 = "10.0.0.0/16"
-vcn2 = "10.1.0.0/16"
-
-req_cidr = ["10.0.0.0/16","10.1.0.0/16"]
