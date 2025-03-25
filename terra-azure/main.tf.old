@@ -1,0 +1,106 @@
+
+resource "azurerm_resource_group" "RG" {
+  name     = "RG-Terr-01"
+  location = "germanywestcentral"
+  provider = azurerm.northeu
+
+}
+
+resource "random_string" "myrandom" {
+  length  = 16
+  special = false
+  upper   = false
+
+}
+
+resource "azurerm_resource_group" "myRrg" {
+  name     = "myrarg${random_string.myrandom.id}"
+  location = "germanywestcentral"
+
+}
+/*
+resource "azurerm_storage_account" "myaccount" {
+  name = "mysa${random_string.myrandom.id}"
+  #account_encryption_source = "Microsoft.Storage"
+  resource_group_name      = azurerm_resource_group.myRrg.name
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  location                 = "germanywestcentral"
+
+
+}*/
+
+resource "azurerm_virtual_network" "myvnet" {
+  name                = "Vnet-01"
+  resource_group_name = azurerm_resource_group.myRrg.name
+  location            = azurerm_resource_group.myRrg.location
+  address_space       = ["10.0.0.0/16"]
+
+  subnet {
+    name             = "ter_within_subnet01"
+    address_prefixes = ["10.0.1.0/24"]
+  }
+}
+
+resource "azurerm_subnet" "mysubnet" {
+  name                 = "subnet02"
+  address_prefixes     = ["10.0.2.0/24"]
+  virtual_network_name = azurerm_virtual_network.myvnet.name
+  resource_group_name  = azurerm_resource_group.myRrg.name
+
+}
+
+resource "azurerm_public_ip" "mypip" {
+  name                = "PIP01"
+  location            = azurerm_resource_group.myRrg.location
+  resource_group_name = azurerm_resource_group.myRrg.name
+  allocation_method   = "Static"
+  #depends_on = [ azurerm_virtual_network.myvnet,azurerm_subnet.mysubnet ]
+
+}
+
+resource "azurerm_network_interface" "mynic" {
+  name                = "mynic01"
+  location            = azurerm_resource_group.myRrg.location
+  resource_group_name = azurerm_resource_group.myRrg.name
+
+  ip_configuration {
+    name                          = "mynic01-ip-config"
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.mypip.id
+    subnet_id                     = azurerm_subnet.mysubnet.id
+  }
+
+}
+
+resource "azurerm_linux_virtual_machine" "VMs" {
+  name                             = "terrvm01"
+  computer_name = "osterrvm01"
+  location                         = azurerm_resource_group.myRrg.location
+  network_interface_ids            = [azurerm_network_interface.mynic.id]
+  resource_group_name              = azurerm_resource_group.myRrg.name
+  size                          = "Standard_B1s"
+
+  os_disk {
+    caching = "None"
+    storage_account_type = "Standard_LRS"
+  } 
+
+  admin_username = "adminuser"
+
+  admin_ssh_key {
+    #public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAiKt7YXVEZOOPqVuZSX7ehhPLXLEk9vxWqnGXsiiJvHdhcyBejemQH68I5kGJNLcuYI1jcNfFJqhQXoiiumUMJP1jfRFEY5/KXqCsxsytyAu2fCpr89y6Afp0qDpthxXMLOV1VDoevJcXtbLsDJFo8KAfiWVjSoMOsYdmzTj6zY/jEAMAB8ln8a6xg9rknzscsDcfvi4tV8OPHSnHpLOucCnusrWmjYSlz7HGNnRgSb1OreNBD1sohdd0xoxh2dW7yFWfLnKGWeE3GKGjL/iPCeDRZ8jErCVzhDgPxCFBPR2AE0RW8oX2ImDdjjDGjgkBPSRZpqhgEr4m62fmbjsZWQ== rsa-key-20190904"
+    public_key = file("C:\\Users\\Mohammad\\Documents\\Terraform\\terra-azure\\general-use.pub")
+    #public_key = filebase64("${path.module}\\general-use.pub")
+    username = "adminuser"
+  }
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
+    version   = "latest"
+  }
+
+ 
+
+}

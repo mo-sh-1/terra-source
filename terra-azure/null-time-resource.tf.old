@@ -1,0 +1,11 @@
+resource "time_sleep" "wait-90s" {
+  depends_on      = [azurerm_linux_virtual_machine.VMs]
+  create_duration = "90s"
+
+}
+
+
+resource "terraform_data" "sync-app1-state" {
+  input = time_sleep.wait-90s
+
+}

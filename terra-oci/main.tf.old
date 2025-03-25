@@ -1,0 +1,67 @@
+
+resource "oci_identity_compartment" "TerraForEach_Compartments" {
+
+  for_each    = tomap(var.compartments_names)
+  name        = each.key
+  description = "create staging and dev compartments"
+
+}
+
+
+resource "oci_identity_compartment" "TerraCount_Compartments" {
+
+  count       = 2
+  provider    = oci.germany
+  name        = "CComp_${count.index}"
+  description = " create compartment using count meta-argument"
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes        = [name, defined_tags]
+  }
+
+}
+
+
+resource "oci_core_vcn" "internal" {
+  dns_label  = "internal"
+  cidr_block = var.vcn1
+  #compartment_id = var.comp1_id
+  compartment_id = oci_identity_compartment.TerraForEach_Compartments["comp1"].id
+  display_name   = "OCI-VCN-01"
+
+  timeouts {
+    create = "10m"
+    update = "30m"
+    delete = "30m"
+  }
+
+}
+
+
+resource "oci_core_vcn" "internal2" {
+  dns_label  = "internal2"
+  cidr_block = var.vcn2
+  #compartment_id = var.comp1_id
+  compartment_id = oci_identity_compartment.TerraForEach_Compartments["comp2"].id
+  display_name   = "OCI-VCN-02"
+
+  timeouts {
+    create = "10m"
+    update = "30m"
+    delete = "30m"
+  }
+
+}
+
+
+resource "oci_core_subnet" "vcn1_subx" {
+  cidr_block = cidrsubnet(oci_core_vcn.internal.cidr_block,4,4)
+  compartment_id = oci_core_vcn.internal.compartment_id
+  vcn_id = oci_core_vcn.internal.id
+}
+
+
+//data "oci_identity_compartment" "comp_data" {
+//	id = oci_identity_compartment.compartments.TerraForEach_Compartments.id
+//}
