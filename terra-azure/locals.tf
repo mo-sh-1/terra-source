@@ -7,4 +7,6 @@ locals {
     OS     = local.OS_Type == "Linux" ? local.OS_Type : "Windows"
     device = local.device_type
   }
+  inboundports = [22,80]
+  outboundports = [29,55,88]
 }

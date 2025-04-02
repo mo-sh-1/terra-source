@@ -57,33 +57,40 @@ resource "azurerm_network_security_group" "nsg" {
   location            = azurerm_resource_group.myrg02.location
   resource_group_name = azurerm_resource_group.myrg02.name
 
-  security_rule {
-    name                       = "ssh-access"
-    protocol                   = "Tcp"
-    access                     = "Allow"
-    priority                   = 100
-    direction                  = "Inbound"
-    source_port_range          = "*"
-    destination_port_range     = 22
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
+  dynamic "security_rule" {
+    for_each = local.inboundports
+    content {
+      name                       = "Inbound-Rule-${security_rule.key}"
+      protocol                   = "Tcp"
+      access                     = "Allow"
+      priority                   = sum([100,security_rule.key])
+      direction                  = "Inbound"
+      source_port_range          = "*"
+      destination_port_range     = security_rule.value
+      source_address_prefix      = "*"
+      destination_address_prefix = "*"
+    }
+    
+  }  
+
+  dynamic "security_rule" {
+    for_each = local.outboundports
+    content {
+      name                       = "Outbound-Rule-${security_rule.key}"
+      protocol                   = "Tcp"
+      access                     = "Allow"
+      priority                   = sum([100,security_rule.key])
+      direction                  = "Outbound"
+      source_port_range          = "*"
+      destination_port_range     = security_rule.value
+      source_address_prefix      = "*"
+      destination_address_prefix = "*"
+    }
+    
+  }
+    
 
   }
-
-  security_rule {
-    name                       = "http-access"
-    protocol                   = "Tcp"
-    access                     = "Allow"
-    priority                   = 200
-    direction                  = "Inbound"
-    source_port_range          = "*"
-    destination_port_range     = 80
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-
-}
 
 resource "azurerm_subnet_network_security_group_association" "subnet-nsg" {
   subnet_id                 = azurerm_subnet.mysubnet.id
